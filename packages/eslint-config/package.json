@@ -1,0 +1,28 @@
+{
+  "name": "@expence/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Общие flat-конфиги ESLint монорепозитория",
+  "type": "module",
+  "exports": {
+    "./base": "./base.mjs",
+    "./nest": "./nest.mjs",
+    "./next": "./next.mjs"
+  },
+  "files": [
+    "base.mjs",
+    "nest.mjs",
+    "next.mjs"
+  ],
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint-config-next": "16.3.1",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.11.0",
+    "typescript-eslint": "8.67.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.0"
+  }
+}
