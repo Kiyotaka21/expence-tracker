@@ -15,11 +15,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Рабочая заготовка. Зависимости установлены (`node_modules`, `pnpm-lock.yaml` на месте), применены три миграции Prisma (`init`, `user_last_login_at`, `expenses_to_transactions`), клиент сгенерирован в `apps/api/src/generated/prisma`. `pnpm typecheck`, `pnpm lint` и `pnpm build` проходят по всем пакетам. Аутентификация работает end-to-end: регистрация, вход, ротация refresh-токенов, отзыв сессий.
 
-Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui (`radix-nova`). Страницы входа и регистрации собраны на `Field` + `react-hook-form` + контрактные схемы; остальные экраны (обзор, транзакции, категории) собраны в слоях.
+Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui (`radix-nova`). Страницы входа и регистрации собраны на `Field` + `react-hook-form` + контрактные схемы; остальные экраны собраны в слоях. `/dashboard` — главный экран: сводка за месяц, карточка профиля, меню создания и список операций с фильтрами и пагинацией по 10 записей. Списки транзакций и категорий вынесены в виджеты — те же самые показывают `/transactions` и `/categories`.
 
 Осознанно нет: тестов и тестового раннера, CI. Бизнес-логика `categories` — CRUD-скелет. У `transactions` поверх CRUD есть сводка за месяц (`GET /api/transactions/summary`), других отчётов пока нет. В интерфейсе нет переключателя темы: тема следует настройке ОС.
 
-Git-история ведётся по Conventional Commits — формат и правила разбивки в разделе «Коммиты».
+Работа ведётся по GitHub Flow, git-история — по Conventional Commits: правила ветвления в разделе «Ветки», формат коммитов и разбивку — в разделе «Коммиты».
 
 Порядок запуска на чистой машине описан в [README.md](README.md).
 
@@ -50,6 +50,58 @@ pnpm --filter web exec shadcn@latest docs <component>   # ссылки на до
 Тестового раннера нет — если он понадобится, его нужно завести (решение «без тестов» на этапе заготовки было принято сознательно).
 
 Флаги в скрипты пакета передавайте через `exec`, а не `run`: `pnpm --filter api exec prisma migrate dev --name init`.
+
+## Ветки
+
+Работаем по [GitHub Flow](https://docs.github.com/ru/get-started/using-github/github-flow): `main` всегда собирается и деплоится, вся работа идёт в короткоживущих ветках от свежего `main`, обратно — только через pull request.
+
+- **В `main` не коммитим напрямую.** Правка документации — тоже ветка и тоже PR: `main` остаётся веткой, в которую только вливают.
+- **Имя ветки**: `<тип>/<область>-<что>`, латиница, kebab-case. Тип и область берём из словаря раздела «Коммиты», но тип фичи в ветке пишется полным словом: ветка `feature/…`, коммит `feat: …` — Conventional Commits допускает в заголовке только `feat`, у ветвей такого ограничения нет. Остальные типы совпадают: `fix/`, `refactor/`, `perf/`, `docs/`, `chore/`. Область опускаем, когда правка задевает весь репозиторий.
+- Примеры: `feature/web-landing-page`, `feature/api-monthly-report`, `fix/web-refresh-race`, `chore/deps-bump-prisma`.
+- **Одна ветка — одна законченная фича и один PR.** Разрослась — дробим на несколько ветвей, а не ведём месяцами: длинная ветка расходится с `main`, и конфликты приходится разрешать в `contracts`, которые видят сразу оба приложения.
+- **Ветку обновляем ребейзом**, не merge-коммитом: история линейная, и мы её такой держим. После ребейза опубликованную ветку пушим `--force-with-lease`, никогда просто `--force`.
+- **Влить PR** — «Rebase and merge»: коммиты в ветке по правилам раздела «Коммиты» осмысленные, схлопывать их незачем. «Squash and merge» — только для черновой истории с `wip`-коммитами.
+- **CI нет**, поэтому единственный барьер перед PR — руки: `pnpm typecheck`, `pnpm lint`, `pnpm build`. Не проходит — PR не открываем.
+- **После влития** удаляем ветку и на GitHub, и локально: через неделю она уже не про ту базу, а в списке ветвей мешает.
+
+Полный цикл:
+
+```bash
+git switch main && git pull --ff-only        # стартуем всегда со свежего main
+git switch -c feature/web-landing-page       # ветка под фичу
+# ... работа, коммиты по Conventional Commits ...
+pnpm typecheck && pnpm lint && pnpm build    # вместо CI
+git push -u origin feature/web-landing-page
+# дальше PR — раздел «Pull request»: gh не в PATH, тело передаётся файлом
+
+git pull --rebase origin main                # если main уехал вперёд
+git push --force-with-lease
+
+# после влития
+git switch main && git pull --ff-only
+git branch -d feature/web-landing-page
+git push origin --delete feature/web-landing-page
+```
+
+## Pull request
+
+**Заголовок PR — по правилам заголовка коммита** (раздел «Коммиты»): `<тип>(<область>): <что делает>`, до 72 символов, императив, с маленькой буквы, без точки в конце. Область — по преобладающей части диффа: PR, где заодно правились сиды и документация, но основная работа в вебе, остаётся `feat(web)`, а не теряет область.
+
+**`gh` установлен, но не в PATH** — ни Git Bash, ни PowerShell его не видят. Вызываем по полному пути:
+
+```bash
+GH='/c/Program Files/GitHub CLI/gh.exe'
+"$GH" pr create --base main --head feature/web-main-screen \
+  --title 'feat(web): собрать главный экран с меню, профилем и пагинацией' \
+  --body-file /path/to/pr-body.md
+```
+
+- **`--fill` не используем.** Он берёт заголовок и тело из коммита ветки — при нескольких коммитах в PR уезжает описание одной из частей работы вместо описания целого.
+- **Тело передаём файлом** (`--body-file`), а не `--body`: в теле markdown со списками и кодом, в одной строке аргумента оно разъезжается. Файл держим вне репозитория — в индекс он попадать не должен.
+- **Что в теле:** что делает PR; разбивка по коммитам; решения, которых не видно в диффе (что выбрано, что отвергнуто и почему); как проверяли; что осталось вне объёма. Это то же «зачем», что и в коммитах, собранное для ревьюера в одном месте.
+- **Проверки перечисляем явно.** CI нет, поэтому в теле пишем, что `pnpm typecheck`, `pnpm lint`, `pnpm build` прогнаны, и отдельно — что проверить не удалось (например, клики в браузере). Умолчание ревьюер прочтёт как «проверено».
+- **Правки по ревью** — обычные коммиты в ту же ветку и `git push`: PR обновляется сам. Переписывать историю опубликованной ветки только ради красоты не нужно, а если пришлось — `--force-with-lease`.
+- Влить — «Rebase and merge», дальше удалить ветку локально и на GitHub (см. «Ветки»).
 
 ## Коммиты
 
@@ -139,10 +191,10 @@ Refresh делает ротацию: сессия в таблице `refresh_ses
 
 | Слой       | Содержимое                                                                                                                                |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `views`    | `login`, `register`, `dashboard`, `transactions`, `categories`, `terms`, `privacy` — сборка экрана из фич и сущностей                     |
-| `widgets`  | `app-header` — шапка приложения                                                                                                           |
+| `views`    | `login`, `register`, `dashboard` (главный экран), `transactions`, `categories`, `terms`, `privacy` — сборка экрана из виджетов и фич      |
+| `widgets`  | `app-header` (шапка и меню профиля), `transaction-list` (фильтры + пагинация), `category-list`, `create-menu`, `profile-card`             |
 | `features` | действия: `auth/{login,register,logout}`, `category/{category-form,delete-category}`, `transaction/{transaction-form,delete-transaction}` |
-| `entities` | `session`, `category`, `transaction` — запросы к API, ключи кэша, хуки над `useQuery`, атомарный UI (`CategoryIcon`)                      |
+| `entities` | `session`, `category`, `transaction` — запросы к API, ключи кэша, хуки над `useQuery`, атомарный UI (`CategoryIcon`, `TransactionAmount`) |
 | `shared`   | `api/client.ts` (fetch + refresh + `ApiError`), `config/{env,routes,session}`, `lib/{utils,format,redirect}`, `ui` (shadcn и обёртки)     |
 
 Правила проверяет линтер — `no-restricted-imports` в `apps/web/eslint.config.mjs`:
@@ -164,6 +216,7 @@ Refresh делает ротацию: сессия в таблице `refresh_ses
 - **Компонента `form` в стиле `radix-nova` нет** — в реестре пустой элемент. Формы собираются из `field` и `Controller` из react-hook-form: `<Field data-invalid={fieldState.invalid}>`, `aria-invalid` на контроле, `<FieldError errors={[fieldState.error]} />`. Это официальный путь, ссылки на документацию даёт `shadcn docs field`.
 - **`error-alert.tsx` и `password-input.tsx` в `shared/ui` — свои, не из реестра.** Первый — единая плашка ошибки запроса, второй — поле пароля на `InputGroup` (рамка и focus-ring охватывают кнопку-глаз, чего не даёт `Input` с абсолютным позиционированием). `shadcn add --overwrite` их не тронет: таких имён в реестре нет.
 - **Тёмная тема включается классом `.dark`**, а не `prefers-color-scheme`: `@custom-variant dark (&:is(.dark *))`. Класс ставит `next-themes` с `defaultTheme="system"` в `src/app/providers.tsx`, поэтому `suppressHydrationWarning` на `<html>` обязателен. Сам `next-themes` пришёл вместе с `sonner` — переключателя темы в интерфейсе нет, тема следует ОС.
+- **`pagination` из реестра не используется**: он построен на ссылках `<a href>` внутри `Button asChild`, а номер страницы в `widgets/transaction-list` — состояние React, не адрес. Ссылка без адреса ломает правый клик и открытие в новой вкладке, поэтому переключатель страниц собран из `Button` внутри виджета.
 - **Шрифт Geist скачивается на этапе сборки** (`next/font/google` в `layout.tsx`) с подмножеством `cyrillic` — без него русский текст рисовался бы фолбэком. `next build` без сети упадёт.
 - Иконки lucide помечены `"use client"`, так что в серверных компонентах их использовать можно — они просто становятся клиентской границей. Но **компонент, полученный из вызова функции внутри рендера, запрещает правило `react-hooks/static-components`**: в `entities/category` карта иконок экспортируется как `CATEGORY_ICON_COMPONENTS`, и нужный элемент выбирается индексацией, а не функцией-фабрикой.
 

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LogOutIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import type { ComponentProps } from 'react';
 import { toast } from 'sonner';
 
 import { sessionApi, sessionErrorMessage } from '@/entities/session';
@@ -10,7 +11,14 @@ import { ROUTES } from '@/shared/config/routes';
 import { Button } from '@/shared/ui/button';
 import { Spinner } from '@/shared/ui/spinner';
 
-export function LogoutButton() {
+/**
+ * Вид кнопки задаёт вызывающий: в шапке она лежит внутри меню профиля и должна
+ * выглядеть как его пункт, а не как отдельная кнопка. Логика выхода при этом
+ * остаётся одна.
+ */
+type LogoutButtonProps = Pick<ComponentProps<typeof Button>, 'variant' | 'size' | 'className'>;
+
+export function LogoutButton({ variant = 'outline', size, className }: LogoutButtonProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -32,7 +40,13 @@ export function LogoutButton() {
   });
 
   return (
-    <Button variant="outline" onClick={() => logout.mutate()} disabled={logout.isPending}>
+    <Button
+      variant={variant}
+      size={size}
+      className={className}
+      onClick={() => logout.mutate()}
+      disabled={logout.isPending}
+    >
       {logout.isPending ? <Spinner /> : <LogOutIcon />}
       Выйти
     </Button>

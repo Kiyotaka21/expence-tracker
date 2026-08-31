@@ -43,7 +43,16 @@ const emptyForm = (): TransactionFormValues => ({
   note: '',
 });
 
-export function TransactionForm() {
+interface TransactionFormProps {
+  /**
+   * Вызывается после успешного сохранения и по кнопке «Отмена». Нужен тому, кто
+   * показывает форму в диалоге: закрыть его может только владелец состояния.
+   * Без него формы просто нет кнопки отмены — на странице отменять нечего.
+   */
+  onDone?: () => void;
+}
+
+export function TransactionForm({ onDone }: TransactionFormProps) {
   const queryClient = useQueryClient();
   const [contractError, setContractError] = useState<string | null>(null);
 
@@ -61,6 +70,7 @@ export function TransactionForm() {
     onSuccess: async () => {
       toast.success('Транзакция добавлена');
       reset(emptyForm());
+      onDone?.();
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
     },
   });
@@ -158,11 +168,17 @@ export function TransactionForm() {
           <Input id="transaction-note" placeholder="Необязательно" {...register('note')} />
         </Field>
 
-        <div>
+        <div className="flex gap-2">
           <Button type="submit" disabled={create.isPending}>
             {create.isPending ? <Spinner /> : null}
             Добавить
           </Button>
+
+          {onDone ? (
+            <Button type="button" variant="outline" onClick={onDone} disabled={create.isPending}>
+              Отмена
+            </Button>
+          ) : null}
         </div>
       </FieldGroup>
     </form>
