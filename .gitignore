@@ -1,0 +1,31 @@
+# Зависимости
+node_modules/
+
+# Сборка и артефакты
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Кеши инструментов
+.turbo/
+.eslintcache
+
+# Prisma-клиент генерируется командой `pnpm db:generate`
+apps/api/src/generated/
+
+# Окружение: в репозитории только *.example
+.env
+.env.*
+!.env.example
+
+# Локальные настройки Claude Code
+.claude/settings.local.json
+
+# Логи
+*.log
+
+# ОС
+.DS_Store
+Thumbs.db

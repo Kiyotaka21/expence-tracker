@@ -1,0 +1,20 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# pnpm 10 по умолчанию блокирует postinstall-скрипты зависимостей.
+# Пакетам ниже сборка нужна: без неё не будет нативных бинарей и Prisma-клиента.
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
+  - argon2
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver
+
+# Пришёл транзитивно с radix-ui и собирает только телеметрию — постоянно
+# спрашивать про него не нужно, отказ фиксируем явно.
+ignoredBuiltDependencies:
+  - '@scarf/scarf'
