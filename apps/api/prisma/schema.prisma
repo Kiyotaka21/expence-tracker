@@ -1,0 +1,93 @@
+// Prisma 7: строка подключения живёт в ../prisma.config.ts, не здесь.
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  name         String?
+  /// Последняя выдача пары токенов: register, login или refresh.
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  categories   Category[]
+  transactions Transaction[]
+  sessions     RefreshSession[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  color     String?
+  icon      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
+}
+
+/// Доход или расход. Тип различает знак операции, всё остальное общее.
+model Transaction {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String          @db.Uuid
+  categoryId String?         @db.Uuid
+  amount     Decimal         @db.Decimal(12, 2)
+  /// Умолчание нужно, чтобы записи, заведённые до появления типа, стали расходами.
+  type       TransactionType @default(EXPENSE)
+  currency   String          @default("RUB") @db.VarChar(3)
+  occurredAt DateTime
+  note       String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([userId, type])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+
+  @@map("transaction_type")
+}
+
+/// Одна запись = один выданный refresh-токен. Даёт ротацию и отзыв сессий.
+model RefreshSession {
+  id        String    @id @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_sessions")
+}

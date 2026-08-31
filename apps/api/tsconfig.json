@@ -1,0 +1,10 @@
+{
+  "extends": "@expence/tsconfig/nest.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "noUncheckedIndexedAccess": false,
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src", "prisma", "prisma.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}
