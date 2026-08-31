@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Рабочая заготовка. Зависимости установлены (`node_modules`, `pnpm-lock.yaml` на месте), применены три миграции Prisma (`init`, `user_last_login_at`, `expenses_to_transactions`), клиент сгенерирован в `apps/api/src/generated/prisma`. `pnpm typecheck`, `pnpm lint` и `pnpm build` проходят по всем пакетам. Аутентификация работает end-to-end: регистрация, вход, ротация refresh-токенов, отзыв сессий.
 
-Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui (`radix-nova`). Страницы входа и регистрации собраны на `Field` + `react-hook-form` + контрактные схемы; остальные экраны (обзор, транзакции, категории) собраны в слоях.
+Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui (`radix-nova`). Страницы входа и регистрации собраны на `Field` + `react-hook-form` + контрактные схемы; остальные экраны собраны в слоях. `/dashboard` — главный экран: сводка за месяц, карточка профиля, меню создания и список операций с фильтрами и пагинацией по 10 записей. Списки транзакций и категорий вынесены в виджеты — те же самые показывают `/transactions` и `/categories`.
 
 Осознанно нет: тестов и тестового раннера, CI. Бизнес-логика `categories` — CRUD-скелет. У `transactions` поверх CRUD есть сводка за месяц (`GET /api/transactions/summary`), других отчётов пока нет. В интерфейсе нет переключателя темы: тема следует настройке ОС.
 
@@ -171,10 +171,10 @@ Refresh делает ротацию: сессия в таблице `refresh_ses
 
 | Слой       | Содержимое                                                                                                                                |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `views`    | `login`, `register`, `dashboard`, `transactions`, `categories`, `terms`, `privacy` — сборка экрана из фич и сущностей                     |
-| `widgets`  | `app-header` — шапка приложения                                                                                                           |
+| `views`    | `login`, `register`, `dashboard` (главный экран), `transactions`, `categories`, `terms`, `privacy` — сборка экрана из виджетов и фич      |
+| `widgets`  | `app-header` (шапка и меню профиля), `transaction-list` (фильтры + пагинация), `category-list`, `create-menu`, `profile-card`             |
 | `features` | действия: `auth/{login,register,logout}`, `category/{category-form,delete-category}`, `transaction/{transaction-form,delete-transaction}` |
-| `entities` | `session`, `category`, `transaction` — запросы к API, ключи кэша, хуки над `useQuery`, атомарный UI (`CategoryIcon`)                      |
+| `entities` | `session`, `category`, `transaction` — запросы к API, ключи кэша, хуки над `useQuery`, атомарный UI (`CategoryIcon`, `TransactionAmount`) |
 | `shared`   | `api/client.ts` (fetch + refresh + `ApiError`), `config/{env,routes,session}`, `lib/{utils,format,redirect}`, `ui` (shadcn и обёртки)     |
 
 Правила проверяет линтер — `no-restricted-imports` в `apps/web/eslint.config.mjs`:
@@ -196,6 +196,7 @@ Refresh делает ротацию: сессия в таблице `refresh_ses
 - **Компонента `form` в стиле `radix-nova` нет** — в реестре пустой элемент. Формы собираются из `field` и `Controller` из react-hook-form: `<Field data-invalid={fieldState.invalid}>`, `aria-invalid` на контроле, `<FieldError errors={[fieldState.error]} />`. Это официальный путь, ссылки на документацию даёт `shadcn docs field`.
 - **`error-alert.tsx` и `password-input.tsx` в `shared/ui` — свои, не из реестра.** Первый — единая плашка ошибки запроса, второй — поле пароля на `InputGroup` (рамка и focus-ring охватывают кнопку-глаз, чего не даёт `Input` с абсолютным позиционированием). `shadcn add --overwrite` их не тронет: таких имён в реестре нет.
 - **Тёмная тема включается классом `.dark`**, а не `prefers-color-scheme`: `@custom-variant dark (&:is(.dark *))`. Класс ставит `next-themes` с `defaultTheme="system"` в `src/app/providers.tsx`, поэтому `suppressHydrationWarning` на `<html>` обязателен. Сам `next-themes` пришёл вместе с `sonner` — переключателя темы в интерфейсе нет, тема следует ОС.
+- **`pagination` из реестра не используется**: он построен на ссылках `<a href>` внутри `Button asChild`, а номер страницы в `widgets/transaction-list` — состояние React, не адрес. Ссылка без адреса ломает правый клик и открытие в новой вкладке, поэтому переключатель страниц собран из `Button` внутри виджета.
 - **Шрифт Geist скачивается на этапе сборки** (`next/font/google` в `layout.tsx`) с подмножеством `cyrillic` — без него русский текст рисовался бы фолбэком. `next build` без сети упадёт.
 - Иконки lucide помечены `"use client"`, так что в серверных компонентах их использовать можно — они просто становятся клиентской границей. Но **компонент, полученный из вызова функции внутри рендера, запрещает правило `react-hooks/static-components`**: в `entities/category` карта иконок экспортируется как `CATEGORY_ICON_COMPONENTS`, и нужный элемент выбирается индексацией, а не функцией-фабрикой.
 
