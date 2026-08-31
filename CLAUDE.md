@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Осознанно нет: тестов и тестового раннера, CI. Бизнес-логика `categories` — CRUD-скелет. У `transactions` поверх CRUD есть сводка за месяц (`GET /api/transactions/summary`), других отчётов пока нет. В интерфейсе нет переключателя темы: тема следует настройке ОС.
 
-Git-история ведётся по Conventional Commits — формат и правила разбивки в разделе «Коммиты».
+Работа ведётся по GitHub Flow, git-история — по Conventional Commits: правила ветвления в разделе «Ветки», формат коммитов и разбивку — в разделе «Коммиты».
 
 Порядок запуска на чистой машине описан в [README.md](README.md).
 
@@ -50,6 +50,38 @@ pnpm --filter web exec shadcn@latest docs <component>   # ссылки на до
 Тестового раннера нет — если он понадобится, его нужно завести (решение «без тестов» на этапе заготовки было принято сознательно).
 
 Флаги в скрипты пакета передавайте через `exec`, а не `run`: `pnpm --filter api exec prisma migrate dev --name init`.
+
+## Ветки
+
+Работаем по [GitHub Flow](https://docs.github.com/ru/get-started/using-github/github-flow): `main` всегда собирается и деплоится, вся работа идёт в короткоживущих ветках от свежего `main`, обратно — только через pull request.
+
+- **В `main` не коммитим напрямую.** Правка документации — тоже ветка и тоже PR: `main` остаётся веткой, в которую только вливают.
+- **Имя ветки**: `<тип>/<область>-<что>`, латиница, kebab-case. Тип и область берём из словаря раздела «Коммиты», но тип фичи в ветке пишется полным словом: ветка `feature/…`, коммит `feat: …` — Conventional Commits допускает в заголовке только `feat`, у ветвей такого ограничения нет. Остальные типы совпадают: `fix/`, `refactor/`, `perf/`, `docs/`, `chore/`. Область опускаем, когда правка задевает весь репозиторий.
+- Примеры: `feature/web-landing-page`, `feature/api-monthly-report`, `fix/web-refresh-race`, `chore/deps-bump-prisma`.
+- **Одна ветка — одна законченная фича и один PR.** Разрослась — дробим на несколько ветвей, а не ведём месяцами: длинная ветка расходится с `main`, и конфликты приходится разрешать в `contracts`, которые видят сразу оба приложения.
+- **Ветку обновляем ребейзом**, не merge-коммитом: история линейная, и мы её такой держим. После ребейза опубликованную ветку пушим `--force-with-lease`, никогда просто `--force`.
+- **Влить PR** — «Rebase and merge»: коммиты в ветке по правилам раздела «Коммиты» осмысленные, схлопывать их незачем. «Squash and merge» — только для черновой истории с `wip`-коммитами.
+- **CI нет**, поэтому единственный барьер перед PR — руки: `pnpm typecheck`, `pnpm lint`, `pnpm build`. Не проходит — PR не открываем.
+- **После влития** удаляем ветку и на GitHub, и локально: через неделю она уже не про ту базу, а в списке ветвей мешает.
+
+Полный цикл:
+
+```bash
+git switch main && git pull --ff-only        # стартуем всегда со свежего main
+git switch -c feature/web-landing-page       # ветка под фичу
+# ... работа, коммиты по Conventional Commits ...
+pnpm typecheck && pnpm lint && pnpm build    # вместо CI
+git push -u origin feature/web-landing-page
+gh pr create --base main --fill
+
+git pull --rebase origin main                # если main уехал вперёд
+git push --force-with-lease
+
+# после влития
+git switch main && git pull --ff-only
+git branch -d feature/web-landing-page
+git push origin --delete feature/web-landing-page
+```
 
 ## Коммиты
 
