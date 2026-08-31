@@ -1,15 +1,25 @@
 'use client';
 
 import { useTransactionSummary } from '@/entities/transaction';
-import { formatMoney } from '@/shared/lib/format';
+import { formatMonthYear, formatMoney } from '@/shared/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { ErrorAlert } from '@/shared/ui/error-alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { CategoryList } from '@/widgets/category-list';
+import { CreateMenu } from '@/widgets/create-menu';
+import { ProfileCard } from '@/widgets/profile-card';
+import { TransactionList } from '@/widgets/transaction-list';
 
 const currentPeriod = () => {
   const now = new Date();
   return { month: now.getMonth() + 1, year: now.getFullYear(), currency: 'RUB' as const };
 };
 
+/**
+ * Главный экран: сводка за месяц, профиль, меню создания и список операций с
+ * пагинацией. Списки и меню — виджеты: те же самые показывают страницы
+ * `/transactions` и `/categories`, здесь только композиция.
+ */
 export function DashboardPage() {
   // Суммы считает бэкенд: складывать Decimal на клиенте нельзя, а сводка
   // к тому же ограничена одной валютой — курсов в проекте нет.
@@ -24,19 +34,23 @@ export function DashboardPage() {
 
   return (
     <>
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold">Обзор</h1>
-        <p className="text-sm text-muted-foreground">
-          Доходы и расходы за текущий месяц, {period.currency}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-semibold">Главная</h1>
+          <p className="text-sm text-muted-foreground">
+            Доходы и расходы за {formatMonthYear(period.year, period.month)}, {period.currency}
+          </p>
+        </div>
+
+        <CreateMenu />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Доходы</CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400">
+          <CardContent className="text-2xl font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
             {value(summary.data?.income)}
           </CardContent>
         </Card>
@@ -45,7 +59,7 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle>Расходы</CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-semibold text-destructive">
+          <CardContent className="text-2xl font-semibold text-destructive tabular-nums">
             {value(summary.data?.expense)}
           </CardContent>
         </Card>
@@ -56,15 +70,36 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent
             className={
-              isNegative ? 'text-3xl font-semibold text-destructive' : 'text-3xl font-semibold'
+              isNegative
+                ? 'text-2xl font-semibold text-destructive tabular-nums'
+                : 'text-2xl font-semibold tabular-nums'
             }
           >
             {value(balance)}
           </CardContent>
         </Card>
+
+        <ProfileCard />
       </div>
 
       {summary.error ? <ErrorAlert message={summary.error.message} /> : null}
+
+      {/* Разделы на одном экране: переход по маршрутам нужен, только если
+          страницу хочется открыть отдельной ссылкой. */}
+      <Tabs defaultValue="transactions">
+        <TabsList>
+          <TabsTrigger value="transactions">Транзакции</TabsTrigger>
+          <TabsTrigger value="categories">Категории</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="transactions">
+          <TransactionList />
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <CategoryList />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
