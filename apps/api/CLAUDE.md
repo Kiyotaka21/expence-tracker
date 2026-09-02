@@ -2,7 +2,7 @@
 
 Nest 11, REST + Swagger, Prisma 7, PostgreSQL. Порт 4000, глобальный префикс `/api`, Swagger на `/api/docs`.
 
-Общее для всего репозитория — ветки, коммиты, pull request, контракты в `packages/contracts` — в корневом [CLAUDE.md](../../CLAUDE.md). Здесь только то, что нужно при правках бэкенда.
+Общее для всего репозитория — ветки, pull request, контракты в `packages/contracts` — в корневом [CLAUDE.md](../../CLAUDE.md), процедура коммита — в скилле [commit](../../.claude/skills/commit/SKILL.md). Здесь только то, что нужно при правках бэкенда.
 
 ## Состояние
 
