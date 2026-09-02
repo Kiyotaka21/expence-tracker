@@ -12,10 +12,41 @@ import type {
 import { PrismaService } from '../../prisma/prisma.service';
 import { toTransaction, toTransactionSummary } from './transaction.mapper';
 
+/**
+ * Бизнес-логика транзакций: CRUD и сводка за месяц.
+ *
+ * Каждый метод принимает `userId` первым аргументом и подмешивает его в `where`:
+ * чужая запись неотличима от несуществующей, поэтому наружу уходит 404, а не 403.
+ * Более тонких прав доступа в проекте нет.
+ *
+ * Наружу сущности отдаются в форме контракта `@expence/contracts` — приведением
+ * занимаются мапперы из `transaction.mapper.ts`, а не Prisma.
+ *
+ * Ошибки самой Prisma здесь не перехватываются: их разбирает глобальный
+ * `AllExceptionsFilter` (`P2002` → 409, `P2025` → 404, остальное → 500).
+ */
 @Injectable()
 export class TransactionsService {
+  /**
+   * @param prisma - Клиент Prisma. `transactions` обращается к нему напрямую:
+   * слоя репозитория у модуля нет, он есть только у `users`.
+   */
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Отдаёт страницу транзакций пользователя, свежие сверху, вместе с общим
+   * количеством записей под текущие фильтры.
+   *
+   * Фильтры необязательные и комбинируются через «И», границы `from`/`to`
+   * включительные (`gte`/`lte`).
+   *
+   * @param userId - Идентификатор владельца записей.
+   * @param query - Пагинация (`page`, `limit`) и фильтры (`categoryId`, `type`, `from`, `to`);
+   * умолчания уже проставлены схемой `transactionListQuerySchema`.
+   * @returns Страница транзакций: `items`, `total`, `page`, `limit`.
+   * @throws Своих исключений не бросает: пустая выборка — это пустой `items`, а не 404.
+   * Наверх могут прорасти только ошибки Prisma (500).
+   */
   async list(userId: string, query: TransactionListQuery): Promise<TransactionList> {
     const where = {
       userId,
@@ -45,6 +76,16 @@ export class TransactionsService {
     return { items: rows.map(toTransaction), total, page: query.page, limit: query.limit };
   }
 
+  /**
+   * Отдаёт одну транзакцию пользователя вместе с её категорией.
+   *
+   * @param userId - Идентификатор владельца записи.
+   * @param id - UUID транзакции.
+   * @returns Транзакция в форме контракта.
+   * @throws {NotFoundException} 404 «Транзакция не найдена» — записи нет либо она чужая.
+   * Два этих случая намеренно не различаются: иначе по коду ответа можно было бы
+   * перебором нащупать чужие id.
+   */
   async findOne(userId: string, id: string): Promise<Transaction> {
     const row = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -59,9 +100,19 @@ export class TransactionsService {
   }
 
   /**
+   * Считает доходы, расходы, баланс и разбивку по категориям за календарный месяц.
+   *
    * Сводка за месяц по одной валюте: складывать рубли с долларами нельзя,
    * курсов в проекте нет. Границы берём в UTC — в БД `timestamp(3)` без зоны,
    * и смешивание с локальным временем давало бы разные итоги на разных машинах.
+   *
+   * Категории добираются отдельным запросом: Prisma `groupBy` не умеет `include`.
+   *
+   * @param userId - Идентификатор владельца записей.
+   * @param query - Месяц (1–12), год и валюта сводки.
+   * @returns Сводка: `income`, `expense`, `balance` строками и разбивка `byCategory`.
+   * @throws Своих исключений не бросает: месяц без транзакций даёт нули и пустой
+   * `byCategory`. Наверх могут прорасти только ошибки Prisma (500).
    */
   async summary(userId: string, query: TransactionSummaryQuery): Promise<TransactionSummary> {
     const from = new Date(Date.UTC(query.year, query.month - 1, 1));
@@ -108,6 +159,19 @@ export class TransactionsService {
     });
   }
 
+  /**
+   * Создаёт транзакцию пользователя.
+   *
+   * Умолчания `type` и `currency` проставляет схема `createTransactionSchema`;
+   * здесь достраивается только то, что зависит от момента запроса: `occurredAt`
+   * без значения — текущее время сервера.
+   *
+   * @param userId - Идентификатор владельца записи.
+   * @param dto - Тело запроса: сумма, тип, валюта, категория, дата операции и заметка.
+   * @returns Созданная транзакция в форме контракта.
+   * @throws {BadRequestException} 400 «Категория не найдена» — `categoryId` указывает
+   * на чужую или несуществующую категорию (см. `ensureCategoryOwned`).
+   */
   async create(userId: string, dto: CreateTransactionDto): Promise<Transaction> {
     await this.ensureCategoryOwned(userId, dto.categoryId);
 
@@ -127,6 +191,20 @@ export class TransactionsService {
     return toTransaction(row);
   }
 
+  /**
+   * Частично обновляет транзакцию: непереданные поля (`undefined`) Prisma не трогает.
+   *
+   * `categoryId` и `note` при этом можно обнулить, передав `null`: схема
+   * `updateTransactionSchema` допускает для них и `null`, и отсутствие поля.
+   *
+   * @param userId - Идентификатор владельца записи.
+   * @param id - UUID транзакции.
+   * @param dto - Изменяемые поля, каждое необязательно.
+   * @returns Обновлённая транзакция в форме контракта.
+   * @throws {NotFoundException} 404 «Транзакция не найдена» — записи нет либо она чужая.
+   * @throws {BadRequestException} 400 «Категория не найдена» — новый `categoryId`
+   * указывает на чужую или несуществующую категорию.
+   */
   async update(userId: string, id: string, dto: UpdateTransactionDto): Promise<Transaction> {
     await this.ensureOwned(userId, id);
     await this.ensureCategoryOwned(userId, dto.categoryId);
@@ -147,11 +225,31 @@ export class TransactionsService {
     return toTransaction(row);
   }
 
+  /**
+   * Удаляет транзакцию пользователя. Удаление физическое, корзины в проекте нет.
+   *
+   * @param userId - Идентификатор владельца записи.
+   * @param id - UUID транзакции.
+   * @returns Ничего: контроллер отвечает 204 без тела.
+   * @throws {NotFoundException} 404 «Транзакция не найдена» — записи нет либо она чужая.
+   * Повторное удаление той же записи тоже даёт 404.
+   */
   async remove(userId: string, id: string): Promise<void> {
     await this.ensureOwned(userId, id);
     await this.prisma.transaction.delete({ where: { id } });
   }
 
+  /**
+   * Проверяет, что транзакция существует и принадлежит пользователю.
+   *
+   * Нужна там, где дальше идёт запрос по одному `id` (`update`, `delete`): сам по
+   * себе такой запрос владельца не проверяет и правил бы чужую запись.
+   *
+   * @param userId - Идентификатор предполагаемого владельца.
+   * @param id - UUID транзакции.
+   * @returns Ничего: успех — это отсутствие исключения.
+   * @throws {NotFoundException} 404 «Транзакция не найдена» — записи нет либо она чужая.
+   */
   private async ensureOwned(userId: string, id: string): Promise<void> {
     const found = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -163,7 +261,19 @@ export class TransactionsService {
     }
   }
 
-  /** Нельзя привязать транзакцию к чужой категории. */
+  /**
+   * Нельзя привязать транзакцию к чужой категории.
+   *
+   * Пустое значение — это осознанное «без категории», поэтому проверка
+   * пропускается: и `null`, и `undefined` валидны.
+   *
+   * @param userId - Идентификатор предполагаемого владельца категории.
+   * @param categoryId - UUID категории, `null` (снять категорию) или `undefined` (не менять).
+   * @returns Ничего: успех — это отсутствие исключения.
+   * @throws {BadRequestException} 400 «Категория не найдена» — категории нет либо она чужая.
+   * Здесь именно 400, а не 404: ненайденный ресурс запроса — сама транзакция,
+   * а неверная категория — ошибка в теле запроса.
+   */
   private async ensureCategoryOwned(
     userId: string,
     categoryId: string | null | undefined,
