@@ -4,7 +4,7 @@
 
 Next 16 (App Router, Turbopack), Tailwind CSS v4, TanStack Query, shadcn/ui. Архитектура Feature-Sliced Design. Порт 3000.
 
-Общее для всего репозитория — ветки, pull request, контракты в `packages/contracts` — в корневом [CLAUDE.md](../../CLAUDE.md), процедура коммита — в скилле [commit](../../.claude/skills/commit/SKILL.md). Здесь только то, что нужно при правках веба.
+Общее для всего репозитория — ветки, pull request, контракты в `packages/contracts` — в корневом [CLAUDE.md](../../CLAUDE.md), процедуры коммита и PR — в скиллах [commit](../../.claude/skills/commit/SKILL.md) и [pr](../../.claude/skills/pr/SKILL.md). Здесь только то, что нужно при правках веба.
 
 ## Состояние
 
