@@ -43,6 +43,17 @@ pnpm --filter @expence/contracts dev   # tsc --watch для контрактов
 
 Флаги в скрипты пакета передавайте через `exec`, а не `run`: `pnpm --filter api exec prisma migrate dev --name init`.
 
+## Скиллы
+
+Процедуры, которые вызываются командой и лежат в `.claude/skills/<имя>/SKILL.md`:
+
+| Скилл                                      | Когда                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| [commit](.claude/skills/commit/SKILL.md)   | любой коммит: ветка, разбивка на единицы работы, проверки, сообщение, пуш                                                |
+| [standup](.claude/skills/standup/SKILL.md) | отчёт за вчерашний день для стендапа. Только вручную командой `/standup`: в frontmatter `disable-model-invocation: true` |
+
+Отчётные и прочие «по команде» процедуры помечайте `disable-model-invocation: true`, иначе агент начнёт запускать их сам, когда решит, что описание подходит.
+
 ## Ветки
 
 Работаем по [GitHub Flow](https://docs.github.com/ru/get-started/using-github/github-flow): `main` всегда собирается и деплоится, вся работа идёт в короткоживущих ветках от свежего `main`, обратно — только через pull request.
