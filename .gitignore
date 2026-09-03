@@ -23,6 +23,9 @@ apps/api/src/generated/
 # Локальные настройки Claude Code
 .claude/settings.local.json
 
+# Артефакты Playwright MCP: скриншоты и снапшоты проверки вёрстки
+.playwright-mcp/
+
 # Логи
 *.log
 
