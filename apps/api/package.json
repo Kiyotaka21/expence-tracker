@@ -9,6 +9,8 @@
     "start": "node dist/main",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -49,6 +51,7 @@
     "eslint": "9.39.5",
     "prisma": "7.9.1",
     "tsx": "4.23.12",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
   }
 }

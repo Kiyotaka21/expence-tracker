@@ -90,8 +90,10 @@ pnpm docker:down
 2. **Флаги в скрипты пакета передавайте через `exec`, а не `run`:**
    `pnpm --filter api exec prisma migrate dev --name init`.
 
-Тестового раннера нет — решение на этапе заготовки было принято сознательно. Понадобится —
-его нужно завести.
+Тесты гоняет Vitest: `pnpm test` из корня или `pnpm --filter api test` (в `apps/api` есть
+ещё `test:watch`). Заведён он пока только в `apps/api` — в `apps/web` и
+`packages/contracts` раннера нет, и первый тест там заведёт его сам: см. «Написать тест на
+файл» ниже.
 
 ## Типовые задачи
 
@@ -163,6 +165,23 @@ react-hook-form.
    `index.ts`.
 3. Маршрут — в `shared/config/routes.ts`: его знают и proxy, и навигация.
 4. Нужен доступ без сессии — добавьте путь в `PUBLIC_ROUTES`.
+
+### Написать тест на файл
+
+`/test <путь к файлу> [что проверить]` — скилл [test](../skills/test/SKILL.md): читает
+файл, выбирает вид теста по слою (контрактная схема, маппер или сервис Nest, чистая
+функция веба), кладёт спеку рядом с исходником под именем `<имя>.spec.ts` и прогоняет её.
+
+В `apps/api` Vitest уже заведён (`vitest.config.ts`, спеки исключены из
+`tsconfig.build.json`, задача `test` в `turbo.json`). В `apps/web` и
+`packages/contracts` — нет, и первый тест там ставит раннер отдельным коммитом до самого
+теста. Оговорки, из-за которых это не сводится к `pnpm add -D vitest`: спеки в
+`packages/contracts` уедут в опубликованный `dist`, если не разделить tsconfig, как в
+`apps/api`; тестам компонентов веба нужны `jsdom` и Testing Library; Nest-овский
+`Test.createTestingModule` под Vitest не поднимется — esbuild не умеет
+`emitDecoratorMetadata`, поэтому сервисы конструируются руками с моками. Образец такого
+теста — `apps/api/src/modules/auth/auth.service.spec.ts`: хранилище сессий там сделано
+объектом в памяти, и проверяется состояние после ротации, а не вызовы Prisma.
 
 ### Собрать отчёт за день
 

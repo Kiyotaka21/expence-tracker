@@ -55,6 +55,7 @@ pnpm dev
 | `pnpm dev`                     | `web` и `api` в watch-режиме (через Turborepo)  |
 | `pnpm build`                   | Сборка всех пакетов с учётом графа зависимостей |
 | `pnpm lint` / `pnpm typecheck` | ESLint / `tsc --noEmit` по всем пакетам         |
+| `pnpm test`                    | Vitest там, где он заведён (пока `apps/api`)    |
 | `pnpm format`                  | Prettier по всему репозиторию                   |
 | `pnpm db:migrate`              | `prisma migrate dev` в `apps/api`               |
 | `pnpm db:generate`             | Генерация Prisma-клиента                        |
@@ -119,8 +120,10 @@ pnpm dev
 Не сделано осознанно:
 
 - `categories` — CRUD-скелет; из отчётов есть только месячная сводка, другой аналитики нет;
-- тестов и тестового раннера нет, CI нет — единственный барьер перед PR это руки:
-  `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+- тестов почти нет: Vitest заведён только в `apps/api` и покрывает `AuthService`,
+  в `apps/web` и `packages/contracts` раннера пока нет;
+- CI нет — единственный барьер перед PR это руки: `pnpm typecheck`, `pnpm lint`,
+  `pnpm build`, `pnpm test`.
 
 Работа ведётся по GitHub Flow, коммиты — по Conventional Commits. Правила ветвления,
 формат коммитов и требования к pull request — в [CLAUDE.md](CLAUDE.md); что нужно знать
