@@ -68,7 +68,7 @@ export function TransactionForm({ onDone }: TransactionFormProps) {
   const create = useMutation({
     mutationFn: transactionApi.create,
     onSuccess: async () => {
-      toast.success('Транзакция добавлена');
+      toast.success('Операция добавлена');
       reset(emptyForm());
       onDone?.();
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });

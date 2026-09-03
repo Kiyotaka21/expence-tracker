@@ -24,7 +24,7 @@ export function DeleteTransactionButton({ id, onDeleted }: DeleteTransactionButt
   const remove = useMutation({
     mutationFn: transactionApi.remove,
     onSuccess: async () => {
-      toast.success('Транзакция удалена');
+      toast.success('Операция удалена');
       onDeleted?.();
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
     },
@@ -37,8 +37,8 @@ export function DeleteTransactionButton({ id, onDeleted }: DeleteTransactionButt
     <Button
       variant="ghost"
       size="icon-sm"
-      className="text-destructive"
-      aria-label="Удалить транзакцию"
+      className="text-muted-foreground hover:text-destructive"
+      aria-label="Удалить операцию"
       disabled={remove.isPending}
       onClick={() => remove.mutate(id)}
     >

@@ -1,105 +1,145 @@
 'use client';
 
-import { useTransactionSummary } from '@/entities/transaction';
-import { formatMonthYear, formatMoney } from '@/shared/lib/format';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { CURRENCIES, type Currency } from '@expence/contracts';
+import { CalendarIcon, CoinsIcon } from 'lucide-react';
+import { useState } from 'react';
+
+import { useSession, userFirstName } from '@/entities/session';
+import { useTransactionSummary, useTransactions } from '@/entities/transaction';
+import { formatMonth, formatMonthYear, pluralize } from '@/shared/lib/format';
 import { ErrorAlert } from '@/shared/ui/error-alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { CategoryList } from '@/widgets/category-list';
+import { NativeSelect, NativeSelectOption } from '@/shared/ui/native-select';
+import { PageHeader } from '@/shared/ui/page-header';
 import { CreateMenu } from '@/widgets/create-menu';
-import { ProfileCard } from '@/widgets/profile-card';
+import { ExpenseBreakdown } from '@/widgets/expense-breakdown';
+import { MonthSummary } from '@/widgets/month-summary';
 import { TransactionList } from '@/widgets/transaction-list';
 
-const currentPeriod = () => {
+/** Глубина списка периодов. Сводку бэкенд считает по месяцу, поэтому выбор — месяцами. */
+const MONTHS_BACK = 12;
+
+interface Period {
+  year: number;
+  month: number;
+}
+
+const currentPeriod = (): Period => {
   const now = new Date();
-  return { month: now.getMonth() + 1, year: now.getFullYear(), currency: 'RUB' as const };
+
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
 };
 
+/** Последние месяцы для выбора: от текущего назад. */
+const periodOptions = (): Period[] => {
+  const now = new Date();
+
+  return Array.from({ length: MONTHS_BACK }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
+
+    return { year: date.getFullYear(), month: date.getMonth() + 1 };
+  });
+};
+
+const periodValue = (period: Period): string => period.year + '-' + period.month;
+
 /**
- * Главный экран: сводка за месяц, профиль, меню создания и список операций с
- * пагинацией. Списки и меню — виджеты: те же самые показывают страницы
- * `/transactions` и `/categories`, здесь только композиция.
+ * Главный экран: приветствие, выбор периода и валюты, сводка месяца, разбивка
+ * расходов по категориям и список операций.
+ *
+ * Валюта и месяц — не декорация, а параметры запроса сводки: складывать рубли
+ * с долларами нельзя, курсов в проекте нет, поэтому итоги всегда по одной
+ * валюте, и её выбирают здесь.
  */
 export function DashboardPage() {
-  // Суммы считает бэкенд: складывать Decimal на клиенте нельзя, а сводка
-  // к тому же ограничена одной валютой — курсов в проекте нет.
-  const period = currentPeriod();
-  const summary = useTransactionSummary(period);
+  const [period, setPeriod] = useState<Period>(currentPeriod);
+  const [currency, setCurrency] = useState<Currency>('RUB');
 
-  const value = (amount: string | undefined): string =>
-    summary.isPending || amount === undefined ? '—' : formatMoney(amount);
+  const session = useSession();
+  // Суммы считает бэкенд: складывать Decimal на клиенте нельзя.
+  const summary = useTransactionSummary({ ...period, currency });
+  // Счётчик операций: у запроса с limit: 1 свой ключ кэша, пагинацию списка
+  // ниже он не задевает — нужен только total.
+  const count = useTransactions({ limit: 1 });
 
-  const balance = summary.data?.balance;
-  const isNegative = balance !== undefined && Number(balance) < 0;
+  const monthLabel = formatMonth(period.year, period.month);
+  const total = count.data?.total;
+
+  const subtitle =
+    formatMonthYear(period.year, period.month) +
+    (total === undefined
+      ? ''
+      : ' · ' + total + ' ' + pluralize(total, ['операция', 'операции', 'операций']));
 
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-semibold">Главная</h1>
-          <p className="text-sm text-muted-foreground">
-            Доходы и расходы за {formatMonthYear(period.year, period.month)}, {period.currency}
-          </p>
+      <PageHeader
+        title={'Привет, ' + (userFirstName(session.data) || 'это ваш бюджет') + ' \u{1f44b}'}
+        description={subtitle}
+      >
+        {/* Иконка внутри контрола: у native-select своя разметка, поэтому
+            отступ под неё задаётся селектором по вложенному select. */}
+        <div className="relative [&_select]:pl-9">
+          <CoinsIcon
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <NativeSelect
+            aria-label="Валюта итогов"
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value as Currency)}
+          >
+            {CURRENCIES.map((item) => (
+              <NativeSelectOption key={item} value={item}>
+                {item}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+
+        <div className="relative [&_select]:pl-9">
+          <CalendarIcon
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <NativeSelect
+            aria-label="Период итогов"
+            value={periodValue(period)}
+            onChange={(event) => {
+              const [year, month] = event.target.value.split('-');
+              setPeriod({ year: Number(year), month: Number(month) });
+            }}
+          >
+            {periodOptions().map((option) => (
+              <NativeSelectOption key={periodValue(option)} value={periodValue(option)}>
+                {formatMonthYear(option.year, option.month)}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
 
         <CreateMenu />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Доходы</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
-            {value(summary.data?.income)}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Расходы</CardTitle>
-          </CardHeader>
-          <CardContent className="text-2xl font-semibold text-destructive tabular-nums">
-            {value(summary.data?.expense)}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Баланс</CardTitle>
-          </CardHeader>
-          <CardContent
-            className={
-              isNegative
-                ? 'text-2xl font-semibold text-destructive tabular-nums'
-                : 'text-2xl font-semibold tabular-nums'
-            }
-          >
-            {value(balance)}
-          </CardContent>
-        </Card>
-
-        <ProfileCard />
-      </div>
+      </PageHeader>
 
       {summary.error ? <ErrorAlert message={summary.error.message} /> : null}
 
-      {/* Разделы на одном экране: переход по маршрутам нужен, только если
-          страницу хочется открыть отдельной ссылкой. */}
-      <Tabs defaultValue="transactions">
-        <TabsList>
-          <TabsTrigger value="transactions">Транзакции</TabsTrigger>
-          <TabsTrigger value="categories">Категории</TabsTrigger>
-        </TabsList>
+      <MonthSummary
+        income={summary.data?.income}
+        expense={summary.data?.expense}
+        balance={summary.data?.balance}
+        currency={currency}
+        monthLabel={monthLabel}
+        isPending={summary.isPending}
+      />
 
-        <TabsContent value="transactions">
-          <TransactionList />
-        </TabsContent>
+      <ExpenseBreakdown
+        byCategory={summary.data?.byCategory}
+        expense={summary.data?.expense}
+        currency={currency}
+        isPending={summary.isPending}
+        monthLabel={monthLabel}
+      />
 
-        <TabsContent value="categories">
-          <CategoryList />
-        </TabsContent>
-      </Tabs>
+      <TransactionList />
     </>
   );
 }

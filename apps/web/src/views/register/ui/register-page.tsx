@@ -2,14 +2,6 @@ import Link from 'next/link';
 
 import { RegisterForm } from '@/features/auth/register';
 import { ROUTES } from '@/shared/config/routes';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui/card';
 
 interface RegisterPageProps {
   /** Путь, на который вести после регистрации. */
@@ -18,24 +10,22 @@ interface RegisterPageProps {
 
 export function RegisterPage({ redirectTo }: RegisterPageProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Регистрация</CardTitle>
-        <CardDescription>Создайте аккаунт, чтобы вести расходы</CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <RegisterForm redirectTo={redirectTo} />
-      </CardContent>
-
-      <CardFooter>
-        <p className="text-sm text-muted-foreground">
-          Уже есть аккаунт?{' '}
-          <Link href={ROUTES.login} className="font-medium text-primary hover:underline">
-            Войти
-          </Link>
+    <div className="space-y-7">
+      <div>
+        <h1 className="font-heading text-2xl leading-tight font-extrabold">Регистрация</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Создайте аккаунт, чтобы вести расходы
         </p>
-      </CardFooter>
-    </Card>
+      </div>
+
+      <RegisterForm redirectTo={redirectTo} />
+
+      <p className="text-sm text-muted-foreground">
+        Уже есть аккаунт?{' '}
+        <Link href={ROUTES.login} className="font-medium text-primary hover:underline">
+          Войти
+        </Link>
+      </p>
+    </div>
   );
 }

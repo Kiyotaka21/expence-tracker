@@ -3,11 +3,7 @@
 import { useState } from 'react';
 
 import { CategoryIcon } from '@/entities/category';
-import {
-  TRANSACTION_TYPE_LABELS,
-  TransactionAmount,
-  useTransactions,
-} from '@/entities/transaction';
+import { TransactionAmount, TransactionTypeBadge, useTransactions } from '@/entities/transaction';
 import { DeleteTransactionButton } from '@/features/transaction/delete-transaction';
 import { formatDate } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
@@ -26,9 +22,9 @@ import { TransactionPagination } from './transaction-pagination';
 /** Заглушка на время первой загрузки: ровно страница строк, чтобы не прыгала высота. */
 function ListSkeleton({ rows }: { rows: number }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 py-2">
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-6 w-full" />
+        <Skeleton key={index} className="h-5 w-full" />
       ))}
     </div>
   );
@@ -41,7 +37,7 @@ interface TransactionListProps {
 
 /**
  * Список операций с фильтрами и пагинацией. Состояние (страница и фильтры)
- * держит сам виджет: его показывают и главный экран, и страница транзакций,
+ * держит сам виджет: его показывают и главный экран, и страница операций,
  * и обоим незачем знать про постраничную навигацию. В URL страница не уезжает
  * намеренно — иначе тремя значениями пришлось бы синхронизировать адрес.
  */
@@ -93,42 +89,44 @@ export function TransactionList({ pageSize = 10 }: TransactionListProps) {
         {transactions.isPending ? <ListSkeleton rows={pageSize} /> : null}
 
         {transactions.data && items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {isFiltered(filters) ? 'Под фильтры ничего не подошло' : 'Пока ни одной транзакции'}
+          <p className="py-2 text-sm text-muted-foreground">
+            {isFiltered(filters)
+              ? 'Под фильтры ничего не подошло — попробуйте сбросить их'
+              : 'Пока ни одной операции. Добавьте первую — она появится здесь.'}
           </p>
         ) : null}
 
         {items.length > 0 ? (
           <div
             className={cn(
-              'overflow-x-auto transition-opacity',
+              '-mx-1 overflow-x-auto px-1 transition-opacity',
               // Данные предыдущей страницы, пока грузится следующая.
               transactions.isPlaceholderData && 'opacity-60',
             )}
           >
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-2 pr-4 font-medium">Дата</th>
-                  <th className="py-2 pr-4 font-medium">Тип</th>
-                  <th className="py-2 pr-4 font-medium">Категория</th>
-                  <th className="py-2 pr-4 font-medium">Комментарий</th>
-                  <th className="py-2 pr-4 text-right font-medium">Сумма</th>
-                  <th className="py-2" />
+            <table className="w-full min-w-[38rem] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="py-2.5 pr-4 label-micro font-semibold">Дата</th>
+                  <th className="py-2.5 pr-4 label-micro font-semibold">Категория</th>
+                  <th className="py-2.5 pr-4 label-micro font-semibold">Тип</th>
+                  <th className="py-2.5 pr-4 label-micro font-semibold">Комментарий</th>
+                  <th className="py-2.5 pr-4 text-right label-micro font-semibold">Сумма</th>
+                  <th className="py-2.5" />
                 </tr>
               </thead>
               <tbody>
                 {items.map((transaction) => (
-                  <tr key={transaction.id} className="border-t">
-                    <td className="py-2 pr-4 whitespace-nowrap">
+                  <tr
+                    key={transaction.id}
+                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                  >
+                    <td className="py-3 pr-4 whitespace-nowrap tabular-nums">
                       {formatDate(transaction.occurredAt)}
                     </td>
-                    <td className="py-2 pr-4 text-muted-foreground">
-                      {TRANSACTION_TYPE_LABELS[transaction.type]}
-                    </td>
-                    <td className="py-2 pr-4">
+                    <td className="py-3 pr-4">
                       {transaction.category ? (
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 font-medium">
                           <CategoryIcon
                             slug={transaction.category.icon}
                             color={transaction.category.color}
@@ -137,18 +135,23 @@ export function TransactionList({ pageSize = 10 }: TransactionListProps) {
                           {transaction.category.name}
                         </span>
                       ) : (
-                        '—'
+                        <span className="text-muted-foreground">Без категории</span>
                       )}
                     </td>
-                    <td className="py-2 pr-4 text-muted-foreground">{transaction.note ?? ''}</td>
-                    <td className="py-2 pr-4 text-right">
+                    <td className="py-3 pr-4">
+                      <TransactionTypeBadge type={transaction.type} />
+                    </td>
+                    <td className="max-w-[16rem] truncate py-3 pr-4 text-muted-foreground">
+                      {transaction.note ?? ''}
+                    </td>
+                    <td className="py-3 pr-4 text-right">
                       <TransactionAmount
                         amount={transaction.amount}
                         currency={transaction.currency}
                         type={transaction.type}
                       />
                     </td>
-                    <td className="py-2 text-right">
+                    <td className="py-3 text-right">
                       <DeleteTransactionButton id={transaction.id} onDeleted={handleDeleted} />
                     </td>
                   </tr>

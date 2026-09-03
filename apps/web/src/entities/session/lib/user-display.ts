@@ -26,3 +26,18 @@ export const userInitials = (user: AuthUser | undefined): string => {
 
   return (user?.email?.[0] ?? '?').toUpperCase();
 };
+
+/**
+ * Короткое обращение для приветствия: первое слово имени, иначе часть email
+ * до собачки. Полное имя в заголовок не годится — «Привет, Иван Петров-Водкин»
+ * ломает строку на любом кегле.
+ */
+export const userFirstName = (user: AuthUser | undefined): string => {
+  const name = user?.name?.trim();
+
+  if (name) {
+    return name.split(/\s+/)[0] ?? name;
+  }
+
+  return user?.email?.split('@')[0] ?? '';
+};

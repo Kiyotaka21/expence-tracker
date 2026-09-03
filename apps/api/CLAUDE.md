@@ -8,12 +8,13 @@ Nest 11, REST + Swagger, Prisma 7, PostgreSQL. Порт 4000, глобальны
 
 Применены три миграции Prisma (`init`, `user_last_login_at`, `expenses_to_transactions`), клиент сгенерирован в `apps/api/src/generated/prisma`. Аутентификация работает end-to-end: регистрация, вход, ротация refresh-токенов, отзыв сессий.
 
-Бизнес-логика `categories` — CRUD-скелет. У `transactions` поверх CRUD есть сводка за месяц (`GET /api/transactions/summary`), других отчётов пока нет. Тестов и тестового раннера нет — решение осознанное; понадобится раннер — его нужно завести.
+Бизнес-логика `categories` — CRUD-скелет. У `transactions` поверх CRUD есть сводка за месяц (`GET /api/transactions/summary`), других отчётов пока нет. Из тестов есть только юнит-тесты `AuthService` (`auth.service.spec.ts`) на Vitest — остальные сервисы и мапперы не покрыты.
 
 ## Команды
 
 ```bash
 pnpm --filter api dev     # nest start --watch (рядом держите pnpm --filter @expence/contracts dev)
+pnpm --filter api test    # vitest run по src/**/*.spec.ts (test:watch — в watch)
 
 pnpm db:migrate           # prisma migrate dev в apps/api
 pnpm db:generate          # генерация Prisma-клиента
@@ -60,6 +61,15 @@ Refresh делает ротацию: сессия в таблице `refresh_ses
 ## Деньги
 
 В БД `Decimal(12,2)`. Наружу отдаётся **строка** (`amount.toFixed(2)` в мапперах) — иначе по пути к клиенту появился бы float. На входе контрактная схема даёт `z.coerce.number()` с ограничением двух знаков.
+
+## Тесты
+
+Vitest, спеки лежат рядом с кодом под именем `<файл>.spec.ts` (`pnpm --filter api test`). Процедура написания теста — скилл [test](../../.claude/skills/test/SKILL.md).
+
+- **Nest DI в юнит-тестах не поднимается.** Vitest компилирует esbuild-ом, а он не умеет `emitDecoratorMetadata`, поэтому `Test.createTestingModule` с инъекцией по типам не соберёт провайдеры. Сервисы конструируются руками с моками-объектами: `new AuthService(prisma, users, jwt, config)`.
+- **`vitest.config.ts` должен остаться `.ts`.** С `.mts` пропадает предупреждение Vite про ESM-конфиг в CJS-пакете, но падает линт: типизированные правила в `packages/eslint-config/base.mjs` привязаны к `**/*.ts`, и `.mts` не получает `parserOptions.projectService`.
+- Спеки исключены из `tsconfig.build.json`, поэтому в `dist` не попадают, но `tsconfig.json` их видит — то есть `pnpm typecheck` и `eslint` проверяют их наравне с кодом.
+- Предупреждение Vite «Your Vite config uses features that are unsupported by `configLoader: 'native'`» на каждом прогоне — ожидаемый шум, а не поломка (см. выше про `.mts`).
 
 ## Границы, которые легко сломать
 

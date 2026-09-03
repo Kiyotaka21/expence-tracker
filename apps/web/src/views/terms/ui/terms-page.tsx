@@ -6,8 +6,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert';
  */
 export function TermsPage() {
   return (
-    <article className="space-y-6">
-      <h1 className="font-heading text-2xl font-semibold">Пользовательское соглашение</h1>
+    <div className="space-y-6">
+      <h1 className="font-heading text-[1.75rem] leading-tight font-extrabold">
+        Пользовательское соглашение
+      </h1>
 
       <Alert>
         <AlertTitle>Текст документа ещё не подготовлен</AlertTitle>
@@ -16,7 +18,7 @@ export function TermsPage() {
         </AlertDescription>
       </Alert>
 
-      <section className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+      <section className="max-w-[68ch] space-y-3 text-sm leading-relaxed text-muted-foreground">
         <p>Документ должен описывать как минимум:</p>
         <ul className="ml-5 list-disc space-y-1">
           <li>предмет соглашения и то, какие услуги оказывает сервис;</li>
@@ -27,6 +29,6 @@ export function TermsPage() {
           <li>контакты для обращений и применимое право.</li>
         </ul>
       </section>
-    </article>
+    </div>
   );
 }

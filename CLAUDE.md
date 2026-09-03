@@ -17,7 +17,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Рабочая заготовка. Зависимости установлены (`node_modules`, `pnpm-lock.yaml` на месте), применены три миграции Prisma, клиент сгенерирован в `apps/api/src/generated/prisma`. `pnpm typecheck`, `pnpm lint` и `pnpm build` проходят по всем пакетам. Аутентификация работает end-to-end: регистрация, вход, ротация refresh-токенов, отзыв сессий. Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui.
 
-Осознанно нет: тестов и тестового раннера, CI. Что готово, а что осталось скелетом, — в памятках приложений.
+Дизайн веба переработан под финансовый дашборд: тёмная рельса навигации, панель содержимого на градиентном холсте, свои токены палитры и пара шрифтов Inter + Manrope — устройство и запреты в [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
+
+Тесты только начаты: Vitest заведён в `apps/api` и покрывает `AuthService`; в `apps/web` и `packages/contracts` раннера ещё нет. CI по-прежнему нет. Что готово, а что осталось скелетом, — в памятках приложений.
 
 Работа ведётся по GitHub Flow, git-история — по Conventional Commits: правила ветвления в разделе «Ветки», формат коммитов и разбивку — в разделе «Коммиты».
 
@@ -30,6 +32,7 @@ pnpm dev                  # web + api в watch (turbo, с учётом граф�
 pnpm build                # сборка всех пакетов
 pnpm lint                 # eslint по всем пакетам
 pnpm typecheck            # tsc --noEmit по всем пакетам
+pnpm test                 # vitest run в пакетах, где он заведён (пока только api)
 pnpm format               # prettier по репозиторию
 
 pnpm --filter api dev     # только backend
@@ -39,7 +42,7 @@ pnpm --filter @expence/contracts dev   # tsc --watch для контрактов
 
 Работа с БД (`pnpm db:migrate`, `db:generate`, `db:seed`, `db:studio`, `docker compose up -d`) и CLI shadcn описаны в памятках `apps/api` и `apps/web` — там же оговорки, без которых команды дают неожиданный результат.
 
-Тестового раннера нет — если он понадобится, его нужно завести (решение «без тестов» на этапе заготовки было принято сознательно).
+Тестовый раннер — Vitest, заведён только в `apps/api`. В `apps/web` и `packages/contracts` его ещё нет: заводит его скилл [test](.claude/skills/test/SKILL.md) при первом тесте в пакете, отдельным коммитом.
 
 Флаги в скрипты пакета передавайте через `exec`, а не `run`: `pnpm --filter api exec prisma migrate dev --name init`.
 
@@ -47,11 +50,13 @@ pnpm --filter @expence/contracts dev   # tsc --watch для контрактов
 
 Процедуры, которые вызываются командой и лежат в `.claude/skills/<имя>/SKILL.md`:
 
-| Скилл                                      | Когда                                                                                                                    |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| [commit](.claude/skills/commit/SKILL.md)   | любой коммит: ветка, разбивка на единицы работы, проверки, сообщение, пуш                                                |
-| [pr](.claude/skills/pr/SKILL.md)           | открыть pull request: аргументы `<заголовок>` и `[ветка]`, состояние ветки, проверки, тело файлом, `gh pr create`        |
-| [standup](.claude/skills/standup/SKILL.md) | отчёт за вчерашний день для стендапа. Только вручную командой `/standup`: в frontmatter `disable-model-invocation: true` |
+| Скилл                                        | Когда                                                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [commit](.claude/skills/commit/SKILL.md)     | любой коммит: ветка, разбивка на единицы работы, проверки, сообщение, пуш                                                |
+| [pr](.claude/skills/pr/SKILL.md)             | открыть pull request: аргументы `<заголовок>` и `[ветка]`, состояние ветки, проверки, тело файлом, `gh pr create`        |
+| [standup](.claude/skills/standup/SKILL.md)   | отчёт за вчерашний день для стендапа. Только вручную командой `/standup`: в frontmatter `disable-model-invocation: true` |
+| [test](.claude/skills/test/SKILL.md)         | тест на файл: аргументы `<путь к файлу>` и `[что проверить]`, вид теста по слою, спека рядом с исходником, прогон        |
+| [ui-check](.claude/skills/ui-check/SKILL.md) | после правок фронтенда: проверить вёрстку `apps/web` на desktop и mobile через Playwright MCP, маршруты по диффу         |
 
 Отчётные и прочие «по команде» процедуры помечайте `disable-model-invocation: true`, иначе агент начнёт запускать их сам, когда решит, что описание подходит.
 
