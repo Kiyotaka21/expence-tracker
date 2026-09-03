@@ -24,7 +24,7 @@ type Creating = 'transaction' | 'category';
 
 const DIALOGS: Record<Creating, { title: string; description: string }> = {
   transaction: {
-    title: 'Новая транзакция',
+    title: 'Новая операция',
     description: 'Доход или расход: сумма, категория и дата',
   },
   category: {
@@ -58,9 +58,7 @@ export function CreateMenu() {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setCreating('transaction')}>
-            Транзакцию
-          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setCreating('transaction')}>Операцию</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setCreating('category')}>Категорию</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

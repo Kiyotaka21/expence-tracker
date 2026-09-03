@@ -122,13 +122,19 @@ Prisma, `UsersService` — тонкий фасад, наружу экспорт�
 - **Слой `pages` называется `views`**, потому что имя `pages` в Next занято Pages Router.
   `page.tsx` роутера — тонкая обёртка: `metadata` плюс рендер компонента из `views`.
 
-| Слой       | Что внутри                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `views`    | `login`, `register`, `dashboard`, `transactions`, `categories`, `terms`, `privacy`                                              |
-| `widgets`  | `app-header`, `transaction-list` (фильтры + пагинация), `category-list`, `create-menu`, `profile-card`                          |
-| `features` | `auth/{login,register,logout}`, `category/{category-form,delete-category}`, `transaction/{transaction-form,delete-transaction}` |
-| `entities` | `session`, `category`, `transaction` — запросы, ключи кэша, хуки над `useQuery`, атомарный UI                                   |
-| `shared`   | `api/client.ts`, `config/{env,routes,session}`, `lib/{utils,format,redirect}`, `ui`                                             |
+| Слой       | Что внутри                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `views`    | `login`, `register`, `dashboard`, `transactions`, `categories`, `terms`, `privacy`                                                    |
+| `widgets`  | `app-nav` (тёмная рельса и мобильная шапка), `month-summary`, `expense-breakdown`, `transaction-list`, `category-list`, `create-menu` |
+| `features` | `auth/{login,register,logout}`, `category/{category-form,delete-category}`, `transaction/{transaction-form,delete-transaction}`       |
+| `entities` | `session`, `category`, `transaction` — запросы, ключи кэша, хуки над `useQuery`, атомарный UI                                         |
+| `shared`   | `api/client.ts`, `config/{env,routes,session}`, `lib/{utils,format,redirect}`, `ui`                                                   |
+
+Оболочка приложения собрана в `src/app/(dashboard)/layout.tsx`: тёмная рельса `AppSidebar`
+(прилипает к верху окна, ниже `lg` подменяется горизонтальной `AppTopbar`) и колонка
+содержимого лежат в одной скруглённой панели, а панель — на градиентном холсте из
+`--canvas-image`. Экраны входа и правовых документов используют ту же панель без навигации,
+поэтому марка `AppBrand` тоже экспортируется из `app-nav`.
 
 Направление импортов проверяет `no-restricted-imports` в `apps/web/eslint.config.mjs`:
 запрещён импорт вверх по слоям и в соседний срез того же слоя. `shared` — исключение:

@@ -11,7 +11,7 @@ import { Spinner } from '@/shared/ui/spinner';
 
 const CONFIRM = 'Удалить категорию? Расходы останутся, но потеряют привязку к категории.';
 
-export function DeleteCategoryButton({ id }: { id: string }) {
+export function DeleteCategoryButton({ id, name }: { id: string; name?: string }) {
   const queryClient = useQueryClient();
 
   const remove = useMutation({
@@ -35,7 +35,8 @@ export function DeleteCategoryButton({ id }: { id: string }) {
     <Button
       variant="ghost"
       size="sm"
-      className="text-destructive"
+      className="text-muted-foreground hover:text-destructive"
+      aria-label={name ? 'Удалить категорию ' + name : 'Удалить категорию'}
       disabled={remove.isPending}
       onClick={() => {
         if (window.confirm(CONFIRM)) {
@@ -44,7 +45,7 @@ export function DeleteCategoryButton({ id }: { id: string }) {
       }}
     >
       {remove.isPending ? <Spinner /> : <Trash2Icon />}
-      Удалить
+      <span className="hidden sm:inline">Удалить</span>
     </Button>
   );
 }

@@ -17,6 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Рабочая заготовка. Зависимости установлены (`node_modules`, `pnpm-lock.yaml` на месте), применены три миграции Prisma, клиент сгенерирован в `apps/api/src/generated/prisma`. `pnpm typecheck`, `pnpm lint` и `pnpm build` проходят по всем пакетам. Аутентификация работает end-to-end: регистрация, вход, ротация refresh-токенов, отзыв сессий. Фронтенд целиком переведён на Feature-Sliced Design и shadcn/ui.
 
+Дизайн веба переработан под финансовый дашборд: тёмная рельса навигации, панель содержимого на градиентном холсте, свои токены палитры и пара шрифтов Inter + Manrope — устройство и запреты в [apps/web/CLAUDE.md](apps/web/CLAUDE.md).
+
 Осознанно нет: тестов и тестового раннера, CI. Что готово, а что осталось скелетом, — в памятках приложений.
 
 Работа ведётся по GitHub Flow, git-история — по Conventional Commits: правила ветвления в разделе «Ветки», формат коммитов и разбивку — в разделе «Коммиты».

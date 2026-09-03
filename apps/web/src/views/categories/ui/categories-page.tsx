@@ -2,15 +2,13 @@
 
 import { CategoryForm } from '@/features/category/category-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { PageHeader } from '@/shared/ui/page-header';
 import { CategoryList } from '@/widgets/category-list';
 
 export function CategoriesPage() {
   return (
     <>
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold">Категории</h1>
-        <p className="text-sm text-muted-foreground">Разметьте траты по смыслу</p>
-      </div>
+      <PageHeader title="Категории" description="Разметьте траты по смыслу" />
 
       <Card>
         <CardHeader>

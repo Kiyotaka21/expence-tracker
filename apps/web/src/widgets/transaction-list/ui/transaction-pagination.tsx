@@ -56,7 +56,7 @@ export function TransactionPagination({
         {pageWindow(page, pageCount).map((number) => (
           <Button
             key={number}
-            variant={number === page ? 'outline' : 'ghost'}
+            variant={number === page ? 'default' : 'ghost'}
             size="icon-sm"
             aria-current={number === page ? 'page' : undefined}
             onClick={() => onChange(number)}

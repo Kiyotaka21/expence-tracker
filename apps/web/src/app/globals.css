@@ -10,8 +10,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-heading: var(--font-sans);
+  /*
+   * Два семейства: Inter — текст и контролы, Manrope — заголовки, навигация
+   * и цифры. `font-heading` разрешается в Manrope, поэтому размеченные им
+   * заголовки становятся дисплейными без правок в компонентах.
+   */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-manrope), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -31,19 +37,31 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Слоты категориальной палитры графиков: см. комментарий у :root. */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  /* Тёмная рельса навигации. Её цвета не зависят от темы — она всегда тёмная. */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Пастельные плитки сводки и цвета денег — знак операции не только цветом. */
+  --color-tint-blue: var(--tint-blue);
+  --color-tint-violet: var(--tint-violet);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -55,80 +73,101 @@
 }
 
 /*
- * Токены нейтральной базы shadcn. Изменены только акцентные:
- * primary/ring — индиго прежней фирменной палитры.
+ * Палитра финансового дашборда: холст — голубой градиент, содержимое — белая
+ * панель, навигация — почти чёрная рельса. Акценты: лазурь (primary) и индиго.
+ *
+ * Слоты --chart-* прогнаны валидатором палитр (полоса светлоты, порог насыщенности,
+ * различимость при дальтонизме, контраст к поверхности) в обоих режимах, поэтому
+ * менять их порознь нельзя: проверяется весь набор и его порядок. Это резерв —
+ * у категории есть свой цвет из БД, и он важнее, а слот достаётся тем, у кого
+ * цвета нет.
  */
 :root {
   color-scheme: light;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.511 0.262 276.966);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.585 0.233 277.117);
-  --chart-1: oklch(0.511 0.262 276.966);
-  --chart-2: oklch(0.585 0.233 277.117);
-  --chart-3: oklch(0.673 0.182 276.935);
-  --chart-4: oklch(0.785 0.115 274.713);
-  --chart-5: oklch(0.87 0.065 274.039);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.511 0.262 276.966);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.585 0.233 277.117);
+  --background: #eaeffb;
+  --canvas-image:
+    radial-gradient(1100px 520px at 12% -12%, #d5e5fb 0%, transparent 62%),
+    linear-gradient(158deg, #e4ecfd 0%, #eceafd 54%, #e6eefc 100%);
+  --foreground: #0a0f17;
+  --card: #ffffff;
+  --card-foreground: #0a0f17;
+  --popover: #ffffff;
+  --popover-foreground: #0a0f17;
+  --primary: #1b8fe8;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1f7;
+  --secondary-foreground: #0a0f17;
+  --muted: #f4f6fa;
+  --muted-foreground: #59626f;
+  --accent: #eaf3fd;
+  --accent-foreground: #0a0f17;
+  --destructive: #d03b3b;
+  --border: #e7ebf1;
+  --input: #dde3ec;
+  --ring: #1b8fe8;
+
+  --chart-1: #1b8fe8;
+  --chart-2: #c22e86;
+  --chart-3: #b87400;
+  --chart-4: #0da596;
+  --chart-5: #4a3ce8;
+  --chart-6: #008300;
+
+  --tint-blue: #dceafd;
+  --tint-violet: #e6e5fd;
+  --income: #0a7d3c;
+  --expense: #d03b3b;
+
+  --radius: 0.75rem;
+
+  --sidebar: #0b1016;
+  --sidebar-foreground: #eef2f7;
+  --sidebar-muted: #8b96a6;
+  --sidebar-primary: #3fa5f2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffffff12;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff14;
+  --sidebar-ring: #3fa5f2;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.585 0.233 277.117);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.673 0.182 276.935);
-  --chart-1: oklch(0.673 0.182 276.935);
-  --chart-2: oklch(0.585 0.233 277.117);
-  --chart-3: oklch(0.785 0.115 274.713);
-  --chart-4: oklch(0.511 0.262 276.966);
-  --chart-5: oklch(0.87 0.065 274.039);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.585 0.233 277.117);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.673 0.182 276.935);
+  --background: #070a0f;
+  --canvas-image:
+    radial-gradient(1100px 520px at 12% -12%, #10203a 0%, transparent 62%),
+    linear-gradient(158deg, #080c12 0%, #0b0f1a 54%, #080c12 100%);
+  --foreground: #f2f5f9;
+  --card: #151a21;
+  --card-foreground: #f2f5f9;
+  --popover: #151a21;
+  --popover-foreground: #f2f5f9;
+  --primary: #3fa5f2;
+  --primary-foreground: #04121f;
+  --secondary: #1d242e;
+  --secondary-foreground: #f2f5f9;
+  --muted: #1b222b;
+  --muted-foreground: #9aa5b4;
+  --accent: #16283a;
+  --accent-foreground: #f2f5f9;
+  --destructive: #f0767a;
+  --border: #ffffff17;
+  --input: #ffffff22;
+  --ring: #3fa5f2;
+
+  --chart-1: #2f97e8;
+  --chart-2: #cf4b94;
+  --chart-3: #c07d00;
+  --chart-4: #00a597;
+  --chart-5: #6a5bef;
+  --chart-6: #279239;
+
+  --tint-blue: #123049;
+  --tint-violet: #201f4a;
+  --income: #3ecf8e;
+  --expense: #f0767a;
 }
 
 @layer base {
@@ -138,5 +177,41 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    /* Холст не скроллится вместе с содержимым: панель «плывёт» по градиенту. */
+    background-image: var(--canvas-image);
+    background-attachment: fixed;
   }
+
+  /*
+   * Цифры в дисплейном кегле набираются пропорционально (tabular-nums делает
+   * «121» разреженным), а табличные — только там, где столбец должен
+   * выравниваться: это отдельный класс на ячейках таблицы.
+   */
+  .font-heading {
+    letter-spacing: -0.02em;
+  }
+}
+
+/*
+ * Пользователь попросил систему не анимировать — не анимируем. Переходы состояний
+ * (наведение, фокус, открытие диалога) остаются мгновенными, а не пропадают.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Микроподпись: шапки таблиц и заголовок раздела в рельсе — как в референсе. */
+@utility label-micro {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
